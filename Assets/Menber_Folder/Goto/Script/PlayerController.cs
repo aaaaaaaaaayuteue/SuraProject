@@ -3,6 +3,7 @@
 [RequireComponent(typeof(BoxCollider2D))]
 [RequireComponent(typeof(Rigidbody2D))]
 [RequireComponent(typeof(SpriteRenderer))]
+[RequireComponent(typeof(AudioSource))]
 public class PlayerController : MonoBehaviour
 {
     [Header("左右の移動速度")]
@@ -25,7 +26,7 @@ public class PlayerController : MonoBehaviour
     [SerializeField] Color chargeReadyColor = Color.yellow;
     [Header("接地判定の下側チェック範囲の厚み")]
     [SerializeField] float groundCheckThickness = 0.05f;
-    [Header("接地判定の左右の余白(壁に横から当たってる時に誤判定しないように狭める)")]
+    [Header("接地判定の左右の余白（壁に横から当たってる時に誤判定しないように狭める）")]
     [SerializeField] float groundCheckSideMargin = 0.05f;
     [Header("接地判定で地面とみなすレイヤー")]
     [SerializeField] LayerMask groundLayer;
@@ -44,9 +45,18 @@ public class PlayerController : MonoBehaviour
     [Header("下端を基準に縮むか（OFFで中心基準で縮む）")]
     [SerializeField] bool squashFromBottom = true;
 
+    [Header("ーーーーーーー ここから下は音関連 ーーーーーーー")]
+    [Header("しゃがみ始めた時に鳴らす音")]
+    [SerializeField] AudioClip squashSound;
+    [Header("チャージ完了時に鳴らす音")]
+    [SerializeField] AudioClip chargeReadySound;
+    [Header("大ジャンプ発動時に鳴らす音")]
+    [SerializeField] AudioClip chargeJumpSound;
+
     private BoxCollider2D boxCollider;      // BoxCollider2Dの参照
     private Rigidbody2D rb;                 // Rigidbody2Dの参照
     private SpriteRenderer spriteRenderer;  // SpriteRendererの参照
+    private AudioSource audioSource;        // AudioSourceの参照
     private Vector3 normalScale;            // 起動時に記録する通常スケール
     private float normalColliderSizeY;      // 起動時に記録する通常Colliderサイズ Y
     private float normalColliderOffsetY;    // 起動時に記録する通常Colliderオフセット Y
@@ -57,6 +67,8 @@ public class PlayerController : MonoBehaviour
     private float chargeJumpInitialVelocity = 0f; // 大ジャンプの初速度（スケール補間用に記憶）
     private float squashLockTimer = 0f;     // 大ジャンプ後にしゃがみ入力を無視する残り時間
     private Vector3 peakScaleSnapshot;      // 最高到達点到達時のスケール（そこから通常スケールへ補間するため記録）
+    private bool wasSquashingLastFrame = false;    // 前フレームでしゃがみ入力してたかどうか（しゃがみ始めの検出用）
+    private bool wasChargeReadyLastFrame = false;  // 前フレームでチャージ完了してたかどうか（チャージ完了瞬間の検出用）
 
     // 縮みきっているかを外部から参照できるようにプロパティを追加
     public bool IsFullySquashed => squashProgress >= 1f;
@@ -82,6 +94,7 @@ public class PlayerController : MonoBehaviour
         boxCollider = GetComponent<BoxCollider2D>();
         rb = GetComponent<Rigidbody2D>();
         spriteRenderer = GetComponent<SpriteRenderer>();
+        audioSource = GetComponent<AudioSource>();
 
         // 起動時のスケールとColliderサイズと色を通常値として記録する
         normalScale = transform.localScale;
@@ -139,6 +152,9 @@ public class PlayerController : MonoBehaviour
         // ーーーチャージ完了状態に応じた色を適用するーーー
         ApplyChargeColor();
 
+        // ーーー効果音の再生判定ーーー
+        PlaySoundEffects(isHoldingSquash);
+
         // ーーー左右移動処理ーーー
         HorizontalMove();
 
@@ -154,6 +170,26 @@ public class PlayerController : MonoBehaviour
             {
                 Jump();
             }
+        }
+
+        // 次のフレームで「状態が変わった瞬間」を検出するため、現在の状態を記録しておく
+        wasSquashingLastFrame = isHoldingSquash;
+        wasChargeReadyLastFrame = IsChargeReady;
+    }
+
+    // 効果音の再生判定処理（状態が変わった瞬間に音を鳴らす）
+    private void PlaySoundEffects(bool isHoldingSquash)
+    {
+        // しゃがみ始めた瞬間（前フレーム未入力→今フレーム入力）にしゃがみ音を鳴らす
+        if (isHoldingSquash && !wasSquashingLastFrame && squashSound != null)
+        {
+            audioSource.PlayOneShot(squashSound);
+        }
+
+        // チャージ完了した瞬間（前フレーム未完了→今フレーム完了）にチャージ完了音を鳴らす
+        if (IsChargeReady && !wasChargeReadyLastFrame && chargeReadySound != null)
+        {
+            audioSource.PlayOneShot(chargeReadySound);
         }
     }
 
@@ -201,6 +237,12 @@ public class PlayerController : MonoBehaviour
 
         // squashProgressは通常時の縮み計算から切り離すので0にしておく
         squashProgress = 0f;
+
+        // 大ジャンプ音を再生する
+        if (chargeJumpSound != null)
+        {
+            audioSource.PlayOneShot(chargeJumpSound);
+        }
     }
 
     // 大ジャンプ中のスケール補間処理（発射時スケール→最高到達点スケール）
