@@ -45,6 +45,12 @@ public class PlayerController : MonoBehaviour
     [Header("下端を基準に縮むか（OFFで中心基準で縮む）")]
     [SerializeField] bool squashFromBottom = true;
 
+    [Header("ーーーーーーー ここから下はエフェクト関連 ーーーーーーー")]
+    [Header("チャージ完了時に生成するエフェクトのプレハブ")]
+    [SerializeField] GameObject chargeReadyParticlePrefab;
+    [Header("大ジャンプ発動時に生成するエフェクトのプレハブ")]
+    [SerializeField] GameObject chargeJumpParticlePrefab;
+
     [Header("ーーーーーーー ここから下は音関連 ーーーーーーー")]
     [Header("しゃがみ始めた時に鳴らす音")]
     [SerializeField] AudioClip squashSound;
@@ -152,7 +158,7 @@ public class PlayerController : MonoBehaviour
         // ーーーチャージ完了状態に応じた色を適用するーーー
         ApplyChargeColor();
 
-        // ーーー効果音の再生判定ーーー
+        // ーーー効果音とエフェクトの再生判定ーーー
         PlaySoundEffects(isHoldingSquash);
 
         // ーーー左右移動処理ーーー
@@ -177,7 +183,7 @@ public class PlayerController : MonoBehaviour
         wasChargeReadyLastFrame = IsChargeReady;
     }
 
-    // 効果音の再生判定処理（状態が変わった瞬間に音を鳴らす）
+    // 効果音とエフェクトの再生判定処理（状態が変わった瞬間に音を鳴らしエフェクトを生成する）
     private void PlaySoundEffects(bool isHoldingSquash)
     {
         // しゃがみ始めた瞬間（前フレーム未入力→今フレーム入力）にしゃがみ音を鳴らす
@@ -186,10 +192,20 @@ public class PlayerController : MonoBehaviour
             audioSource.PlayOneShot(squashSound);
         }
 
-        // チャージ完了した瞬間（前フレーム未完了→今フレーム完了）にチャージ完了音を鳴らす
-        if (IsChargeReady && !wasChargeReadyLastFrame && chargeReadySound != null)
+        // チャージ完了した瞬間（前フレーム未完了→今フレーム完了）に音とエフェクトを発生させる
+        if (IsChargeReady && !wasChargeReadyLastFrame)
         {
-            audioSource.PlayOneShot(chargeReadySound);
+            // チャージ完了音を鳴らす
+            if (chargeReadySound != null)
+            {
+                audioSource.PlayOneShot(chargeReadySound);
+            }
+
+            // チャージ完了エフェクトを生成する（プレイヤー位置に発生）
+            if (chargeReadyParticlePrefab != null)
+            {
+                Instantiate(chargeReadyParticlePrefab, transform.position, Quaternion.identity);
+            }
         }
     }
 
@@ -242,6 +258,12 @@ public class PlayerController : MonoBehaviour
         if (chargeJumpSound != null)
         {
             audioSource.PlayOneShot(chargeJumpSound);
+        }
+
+        // 大ジャンプエフェクトを生成する（プレイヤー位置に発生）
+        if (chargeJumpParticlePrefab != null)
+        {
+            Instantiate(chargeJumpParticlePrefab, transform.position, Quaternion.identity);
         }
     }
 
