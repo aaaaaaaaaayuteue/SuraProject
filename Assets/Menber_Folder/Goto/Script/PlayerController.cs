@@ -8,25 +8,25 @@ public class PlayerController : MonoBehaviour
 {
     [Header("左右の移動速度")]
     [SerializeField] float moveSpeed = 5f;
-    [Header("ジャンプの最高到達点（この高さまで飛ぶ。重力変えても自動で調整される）")]
+    [Header("ジャンプの最高到達点(この高さまで飛ぶ。重力変えても自動で調整される)")]
     [SerializeField] float jumpHeight = 3f;
-    [Header("大ジャンプの最高到達点（チャージジャンプ時の高さ）")]
+    [Header("大ジャンプの最高到達点(チャージジャンプ時の高さ)")]
     [SerializeField] float chargeJumpHeight = 8f;
-    [Header("チャージが完了するまでにかかる時間（秒）")]
+    [Header("チャージが完了するまでにかかる時間(秒)")]
     [SerializeField] float chargeTime = 0.6f;
-    [Header("大ジャンプ発動時のスケール（Xを縮めてYを伸ばす。縦長の発射ポーズ）")]
+    [Header("大ジャンプ発動時のスケール(Xを縮めてYを伸ばす。縦長の発射ポーズ)")]
     [SerializeField] Vector3 chargeJumpStartScale = new Vector3(0.6f, 1.6f, 1f);
-    [Header("大ジャンプ最高到達点のスケール（ちょっとXが伸びてYが縮む形）")]
+    [Header("大ジャンプ最高到達点のスケール(ちょっとXが伸びてYが縮む形)")]
     [SerializeField] Vector3 chargeJumpPeakScale = new Vector3(1.15f, 0.85f, 1f);
-    [Header("最高到達点までの高さの何分の1から戻り始めるか（2なら1/2地点から、3なら1/3地点から戻り始める。大きいほど早く戻り始める）")]
+    [Header("最高到達点までの高さの何分の1から戻り始めるか(2なら1/2地点から、3なら1/3地点から戻り始める。大きいほど早く戻り始める)")]
     [SerializeField] int chargeJumpScaleReturnDivisor = 2;
-    [Header("大ジャンプの最高到達点到達後、しゃがみ入力を無視する時間（秒）")]
+    [Header("大ジャンプの最高到達点到達後、しゃがみ入力を無視する時間(秒)")]
     [SerializeField] float squashLockAfterPeak = 0.1f;
     [Header("チャージ完了時のプレイヤーの色")]
     [SerializeField] Color chargeReadyColor = Color.yellow;
     [Header("接地判定の下側チェック範囲の厚み")]
     [SerializeField] float groundCheckThickness = 0.05f;
-    [Header("接地判定の左右の余白（壁に横から当たってる時に誤判定しないように狭める）")]
+    [Header("接地判定の左右の余白(壁に横から当たってる時に誤判定しないように狭める)")]
     [SerializeField] float groundCheckSideMargin = 0.05f;
     [Header("接地判定で地面とみなすレイヤー")]
     [SerializeField] LayerMask groundLayer;
@@ -34,16 +34,28 @@ public class PlayerController : MonoBehaviour
     [SerializeField] float ceilingCheckThickness = 0.05f;
     [Header("天井判定の左右の余白")]
     [SerializeField] float ceilingCheckSideMargin = 0.05f;
-    [Header("縮みきった時のスケール（見た目の潰れ具合。Yを小さく、Xを大きくすると潰れた感じになる）")]
+    [Header("縮みきった時のスケール(見た目の潰れ具合。Yを小さく、Xを大きくすると潰れた感じになる)")]
     [SerializeField] Vector3 squashedScale = new Vector3(1.3f, 0.4f, 1f);
-    [Header("縮みきった時のColliderのY縮み率（0.9なら見た目の90%の高さになる。ちょっと小さめにすると天井に引っかかりにくい）")]
+    [Header("縮みきった時のColliderのY縮み率(0.9なら見た目の90%の高さになる。ちょっと小さめにすると天井に引っかかりにくい)")]
     [SerializeField] float squashedColliderYRatio = 0.9f;
-    [Header("縮むのにかかる時間（秒）")]
+    [Header("縮むのにかかる時間(秒)")]
     [SerializeField] float squashDuration = 0.1f;
-    [Header("元の大きさに戻るのにかかる時間（秒）")]
+    [Header("元の大きさに戻るのにかかる時間(秒)")]
     [SerializeField] float stretchDuration = 0.1f;
-    [Header("下端を基準に縮むか（OFFで中心基準で縮む）")]
+    [Header("下端を基準に縮むか(OFFで中心基準で縮む)")]
     [SerializeField] bool squashFromBottom = true;
+
+    [Header("ーーーーーーー ここから下は破壊ブロック関連 ーーーーーーー")]
+    [Header("破壊可能ブロックのタグ")]
+    [SerializeField] string breakableBlockTag = "Block";
+    [Header("下から突き上げたと判定する角度の余裕(度)")]
+    [SerializeField] float hitFromBelowAngleTolerance = 45f;
+    [Header("ブロック破壊時に生成するエフェクトのプレハブ")]
+    [SerializeField] GameObject blockBreakParticlePrefab;
+    [Header("ブロック破壊時のカメラ揺れ時間(秒)")]
+    [SerializeField] float blockBreakShakeDuration = 0.15f;
+    [Header("ブロック破壊時のカメラ揺れ幅")]
+    [SerializeField] float blockBreakShakeMagnitude = 0.15f;
 
     [Header("ーーーーーーー ここから下はエフェクト関連 ーーーーーーー")]
     [Header("チャージ完了時に生成するエフェクトのプレハブ")]
@@ -58,6 +70,8 @@ public class PlayerController : MonoBehaviour
     [SerializeField] AudioClip chargeReadySound;
     [Header("大ジャンプ発動時に鳴らす音")]
     [SerializeField] AudioClip chargeJumpSound;
+    [Header("ブロック破壊時に鳴らす音")]
+    [SerializeField] AudioClip blockBreakSound;
 
     private BoxCollider2D boxCollider;      // BoxCollider2Dの参照
     private Rigidbody2D rb;                 // Rigidbody2Dの参照
@@ -68,25 +82,29 @@ public class PlayerController : MonoBehaviour
     private float normalColliderOffsetY;    // 起動時に記録する通常Colliderオフセット Y
     private Color normalColor;              // 起動時に記録する通常色
     private float squashProgress = 0f;      // 0で通常、1で縮みきった状態
-    private float chargeProgress = 0f;      // チャージの進捗（0で未チャージ、1で完了）
-    private bool isChargeJumping = false;   // 現在大ジャンプ中かどうか（発動から最高到達点まで）
-    private float chargeJumpInitialVelocity = 0f; // 大ジャンプの初速度（スケール補間用に記憶）
+    private float chargeProgress = 0f;      // チャージの進捗(0で未チャージ、1で完了)
+    private bool isChargeJumping = false;   // 現在大ジャンプ中かどうか(発動から最高到達点まで)
+    private float chargeJumpInitialVelocity = 0f; // 大ジャンプの初速度(スケール補間用に記憶)
     private float squashLockTimer = 0f;     // 大ジャンプ後にしゃがみ入力を無視する残り時間
-    private Vector3 peakScaleSnapshot;      // 最高到達点到達時のスケール（そこから通常スケールへ補間するため記録）
-    private bool wasSquashingLastFrame = false;    // 前フレームでしゃがみ入力してたかどうか（しゃがみ始めの検出用）
-    private bool wasChargeReadyLastFrame = false;  // 前フレームでチャージ完了してたかどうか（チャージ完了瞬間の検出用）
+    private Vector3 peakScaleSnapshot;      // 最高到達点到達時のスケール(そこから通常スケールへ補間するため記録)
+    private bool wasSquashingLastFrame = false;    // 前フレームでしゃがみ入力してたかどうか(しゃがみ始めの検出用)
+    private bool wasChargeReadyLastFrame = false;  // 前フレームでチャージ完了してたかどうか(チャージ完了瞬間の検出用)
+    private Vector2 velocityBeforeCollision;       // 衝突直前のvelocityを記憶(ブロック破壊時の速度復元用)
 
     // 縮みきっているかを外部から参照できるようにプロパティを追加
     public bool IsFullySquashed => squashProgress >= 1f;
 
-    // 縮み進捗（0〜1）を外部から参照できるようにプロパティを追加
+    // 縮み進捗(0〜1)を外部から参照できるようにプロパティを追加
     public float SquashProgress => squashProgress;
 
     // チャージが完了しているかを外部から参照できるようにプロパティを追加
     public bool IsChargeReady => chargeProgress >= 1f;
 
-    // チャージ進捗（0〜1）を外部から参照できるようにプロパティを追加
+    // チャージ進捗(0〜1)を外部から参照できるようにプロパティを追加
     public float ChargeProgress => chargeProgress;
+
+    // 大ジャンプ中かを外部から参照できるようにプロパティを追加
+    public bool IsChargeJumping => isChargeJumping;
 
     // 接地しているかを外部から参照できるようにプロパティを追加
     public bool IsGrounded => CheckGrounded();
@@ -118,7 +136,7 @@ public class PlayerController : MonoBehaviour
         }
 
         // ーーーしゃがみ入力判定ーーー
-        // SキーまたはDownArrowキーで縮むかどうかを判定する（ただしロック中は入力無視）
+        // SキーまたはDownArrowキーで縮むかどうかを判定する(ただしロック中は入力無視)
         bool isHoldingSquash = (Input.GetKey(KeyCode.S) || Input.GetKey(KeyCode.DownArrow)) && squashLockTimer <= 0f;
 
         // 上に天井があって伸びきれない時は、キーを離しても縮んだままにする
@@ -183,16 +201,86 @@ public class PlayerController : MonoBehaviour
         wasChargeReadyLastFrame = IsChargeReady;
     }
 
-    // 効果音とエフェクトの再生判定処理（状態が変わった瞬間に音を鳴らしエフェクトを生成する）
+    // 物理演算タイミングで呼ばれる(衝突前の速度を記録するため)
+    private void FixedUpdate()
+    {
+        // 物理衝突が処理される前の時点でのvelocityを記録しておく
+        // (OnCollisionEnter2Dは衝突解決後に呼ばれるので、その時点では既に減速しているため事前に記録が必要)
+        velocityBeforeCollision = rb.linearVelocity;
+    }
+
+    // 何かと衝突した時に呼ばれる(ブロック破壊判定)
+    private void OnCollisionEnter2D(Collision2D collision)
+    {
+        // 大ジャンプ中でなければ何もしない
+        if (!isChargeJumping) return;
+
+        // 衝突相手が破壊可能ブロックでなければ何もしない
+        if (!collision.collider.CompareTag(breakableBlockTag)) return;
+
+        // 下から突き上げた衝突でなければ何もしない
+        if (!IsHitFromBelow(collision)) return;
+
+        // ーーーブロックを破壊するーーー
+        BreakBlock(collision.collider.gameObject);
+    }
+
+    // 下からの衝突かどうかを判定する
+    private bool IsHitFromBelow(Collision2D collision)
+    {
+        // プレイヤーがブロックの下面に衝突した場合、その接触面の法線は下向き(Vector2.down)になる
+        foreach (ContactPoint2D contact in collision.contacts)
+        {
+            float angleFromDown = Vector2.Angle(contact.normal, Vector2.down);
+
+            // 許容角度内なら下からの衝突とみなす
+            if (angleFromDown <= hitFromBelowAngleTolerance)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    // 指定のブロックを破壊する
+    private void BreakBlock(GameObject block)
+    {
+        // 破壊エフェクトを生成する(ブロックの位置に発生)
+        if (blockBreakParticlePrefab != null)
+        {
+            Instantiate(blockBreakParticlePrefab, block.transform.position, Quaternion.identity);
+        }
+
+        // 破壊音を再生する
+        if (blockBreakSound != null)
+        {
+            audioSource.PlayOneShot(blockBreakSound);
+        }
+
+        // カメラを一瞬振動させる(ブロック破壊用の揺れパラメータを使う)
+        if (CameraShaker.Instance != null)
+        {
+            CameraShaker.Instance.Shake(blockBreakShakeDuration, blockBreakShakeMagnitude);
+        }
+
+        // ブロックを削除する
+        Destroy(block);
+
+        // ーーー衝突前の速度を復元する(物理演算による減速をキャンセルして次のブロックへ貫通)ーーー
+        rb.linearVelocity = velocityBeforeCollision;
+    }
+
+    // 効果音とエフェクトの再生判定処理(状態が変わった瞬間に音を鳴らしエフェクトを生成する)
     private void PlaySoundEffects(bool isHoldingSquash)
     {
-        // しゃがみ始めた瞬間（前フレーム未入力→今フレーム入力）にしゃがみ音を鳴らす
+        // しゃがみ始めた瞬間(前フレーム未入力→今フレーム入力)にしゃがみ音を鳴らす
         if (isHoldingSquash && !wasSquashingLastFrame && squashSound != null)
         {
             audioSource.PlayOneShot(squashSound);
         }
 
-        // チャージ完了した瞬間（前フレーム未完了→今フレーム完了）に音とエフェクトを発生させる
+        // チャージ完了した瞬間(前フレーム未完了→今フレーム完了)に音とエフェクトを発生させる
         if (IsChargeReady && !wasChargeReadyLastFrame)
         {
             // チャージ完了音を鳴らす
@@ -201,7 +289,7 @@ public class PlayerController : MonoBehaviour
                 audioSource.PlayOneShot(chargeReadySound);
             }
 
-            // チャージ完了エフェクトを生成する（プレイヤー位置に発生）
+            // チャージ完了エフェクトを生成する(プレイヤー位置に発生)
             if (chargeReadyParticlePrefab != null)
             {
                 Instantiate(chargeReadyParticlePrefab, transform.position, Quaternion.identity);
@@ -209,20 +297,20 @@ public class PlayerController : MonoBehaviour
         }
     }
 
-    // 左右移動処理（AD・左右矢印キーに対応）
+    // 左右移動処理(AD・左右矢印キーに対応)
     private void HorizontalMove()
     {
-        // 水平方向の入力を取得する（-1〜1の値、AとLeftArrowで-1、DとRightArrowで+1）
+        // 水平方向の入力を取得する(-1〜1の値、AとLeftArrowで-1、DとRightArrowで+1)
         float x = Input.GetAxisRaw("Horizontal");
 
-        // 現在のY速度（重力の落下とか）は保ったまま、X方向の速度だけ上書きする
+        // 現在のY速度(重力の落下とか)は保ったまま、X方向の速度だけ上書きする
         rb.linearVelocity = new Vector2(x * moveSpeed, rb.linearVelocity.y);
     }
 
-    // 通常ジャンプ処理（最高到達点から必要な初速度を逆算する）
+    // 通常ジャンプ処理(最高到達点から必要な初速度を逆算する)
     private void Jump()
     {
-        // 実効重力を計算する（Project SettingsのGravityとRigidbodyのgravityScaleの両方を考慮）
+        // 実効重力を計算する(Project SettingsのGravityとRigidbodyのgravityScaleの両方を考慮)
         float effectiveGravity = Mathf.Abs(Physics2D.gravity.y) * rb.gravityScale;
 
         // 物理式 v = √(2gh) から、指定の高さに到達するために必要な初速度を求める
@@ -232,10 +320,10 @@ public class PlayerController : MonoBehaviour
         rb.linearVelocity = new Vector2(rb.linearVelocity.x, jumpVelocity);
     }
 
-    // 大ジャンプ処理（通常ジャンプより高く飛ぶ。チャージ完了時のみ発動可能）
+    // 大ジャンプ処理(通常ジャンプより高く飛ぶ。チャージ完了時のみ発動可能)
     private void ChargeJump()
     {
-        // 実効重力を計算する（Project SettingsのGravityとRigidbodyのgravityScaleの両方を考慮）
+        // 実効重力を計算する(Project SettingsのGravityとRigidbodyのgravityScaleの両方を考慮)
         float effectiveGravity = Mathf.Abs(Physics2D.gravity.y) * rb.gravityScale;
 
         // 物理式 v = √(2gh) から、大ジャンプの高さに必要な初速度を求める
@@ -244,7 +332,7 @@ public class PlayerController : MonoBehaviour
         // X方向の速度はそのままに、Y方向だけ大ジャンプ速度で上書きする
         rb.linearVelocity = new Vector2(rb.linearVelocity.x, jumpVelocity);
 
-        // 大ジャンプ状態を開始する（スケール補間のために初速度を記憶）
+        // 大ジャンプ状態を開始する(スケール補間のために初速度を記憶)
         isChargeJumping = true;
         chargeJumpInitialVelocity = jumpVelocity;
 
@@ -260,17 +348,17 @@ public class PlayerController : MonoBehaviour
             audioSource.PlayOneShot(chargeJumpSound);
         }
 
-        // 大ジャンプエフェクトを生成する（プレイヤー位置に発生）
+        // 大ジャンプエフェクトを生成する(プレイヤー位置に発生)
         if (chargeJumpParticlePrefab != null)
         {
             Instantiate(chargeJumpParticlePrefab, transform.position, Quaternion.identity);
         }
     }
 
-    // 大ジャンプ中のスケール補間処理（発射時スケール→最高到達点スケール）
+    // 大ジャンプ中のスケール補間処理(発射時スケール→最高到達点スケール)
     private void UpdateChargeJumpScale()
     {
-        // 現在のY速度と初速度の比率を求める（発射直後は1、最高到達点では0）
+        // 現在のY速度と初速度の比率を求める(発射直後は1、最高到達点では0)
         float velocityRatio = rb.linearVelocity.y / chargeJumpInitialVelocity;
         velocityRatio = Mathf.Clamp01(velocityRatio);
 
@@ -278,7 +366,7 @@ public class PlayerController : MonoBehaviour
         // 物理的に 現在高さ / 最高到達点 = 1 - velocityRatio^2 の関係が成り立つ
         float heightRatio = 1f - velocityRatio * velocityRatio;
 
-        // 戻り始める高さ比率を計算する（divisor=2なら 1/2地点から、divisor=3なら 1/3地点から戻り始める）
+        // 戻り始める高さ比率を計算する(divisor=2なら 1/2地点から、divisor=3なら 1/3地点から戻り始める)
         float returnStartHeightRatio = 1f / chargeJumpScaleReturnDivisor;
 
         float t;
@@ -303,10 +391,10 @@ public class PlayerController : MonoBehaviour
         ApplyColliderAndPositionForCurrentScale();
     }
 
-    // 大ジャンプ後のスケール補間処理（最高到達点スケール→通常スケール）
+    // 大ジャンプ後のスケール補間処理(最高到達点スケール→通常スケール)
     private void UpdatePostJumpScale()
     {
-        // 残りロック時間を進行度に変換する（ロック開始時0→終了時1）
+        // 残りロック時間を進行度に変換する(ロック開始時0→終了時1)
         float t = 1f - (squashLockTimer / squashLockAfterPeak);
         t = Mathf.Clamp01(t);
 
@@ -317,7 +405,7 @@ public class PlayerController : MonoBehaviour
         ApplyColliderAndPositionForCurrentScale();
     }
 
-    // 現在のlocalScaleに合わせてColliderとpositionを調整する（UpdateChargeJumpScale/UpdatePostJumpScaleから呼ばれる）
+    // 現在のlocalScaleに合わせてColliderとpositionを調整する(UpdateChargeJumpScale/UpdatePostJumpScaleから呼ばれる)
     private void ApplyColliderAndPositionForCurrentScale()
     {
         // 大ジャンプ関連ではsquashProgressを使わず、localScale.yから直接縮み率を割り出す
@@ -329,13 +417,13 @@ public class PlayerController : MonoBehaviour
         float normalBottomLocalY = normalColliderOffsetY - normalColliderSizeY / 2f;
         float currentOffsetY = normalBottomLocalY + currentSizeY / 2f;
 
-        // Colliderのsizeとoffsetを適用する（sizeのXはそのまま、YとoffsetのYだけ変更）
+        // Colliderのsizeとoffsetを適用する(sizeのXはそのまま、YとoffsetのYだけ変更)
         // ※localScaleによる自動拡縮があるので、size.yは"ローカル基準"で設定する必要があるためscaleRatioYで割る
         boxCollider.size = new Vector2(boxCollider.size.x, currentSizeY / scaleRatioY);
         boxCollider.offset = new Vector2(boxCollider.offset.x, currentOffsetY / scaleRatioY);
     }
 
-    // チャージ処理（しゃがみ中はチャージが溜まり、しゃがみを解除すると消える）
+    // チャージ処理(しゃがみ中はチャージが溜まり、しゃがみを解除すると消える)
     private void UpdateCharge(bool isHoldingSquash)
     {
         if (isHoldingSquash && IsFullySquashed)
@@ -360,20 +448,20 @@ public class PlayerController : MonoBehaviour
         spriteRenderer.color = IsChargeReady ? chargeReadyColor : normalColor;
     }
 
-    // 接地判定（プレイヤーColliderの真下に地面があるかチェック）
+    // 接地判定(プレイヤーColliderの真下に地面があるかチェック)
     private bool CheckGrounded()
     {
         // プレイヤーColliderの下辺のすぐ下に、薄いチェックボックスを配置する
         Vector2 boxCenter = new Vector2(boxCollider.bounds.center.x, boxCollider.bounds.min.y - groundCheckThickness / 2f);
 
-        // 横幅はプレイヤーColliderより少し狭くする（真横の壁に反応しないように）
+        // 横幅はプレイヤーColliderより少し狭くする(真横の壁に反応しないように)
         Vector2 boxSize = new Vector2(boxCollider.bounds.size.x - groundCheckSideMargin * 2f, groundCheckThickness);
 
         // チェックボックスの範囲内に地面レイヤーのColliderがあればtrueを返す
         return Physics2D.OverlapBox(boxCenter, boxSize, 0f, groundLayer) != null;
     }
 
-    // 天井判定（伸びきった時にプレイヤーの頭上に障害物があるかチェック）
+    // 天井判定(伸びきった時にプレイヤーの頭上に障害物があるかチェック)
     private bool CheckCeiling()
     {
         // 現在の下端から通常スケールの高さ分まで伸びた時の、上端のY座標を計算する
@@ -383,10 +471,10 @@ public class PlayerController : MonoBehaviour
         // 伸びきった時の上端のすぐ上に、薄いチェックボックスを配置する
         Vector2 boxCenter = new Vector2(boxCollider.bounds.center.x, normalTopY + ceilingCheckThickness / 2f);
 
-        // 横幅はプレイヤーColliderより少し狭くする（真横の壁に反応しないように）
+        // 横幅はプレイヤーColliderより少し狭くする(真横の壁に反応しないように)
         Vector2 boxSize = new Vector2(boxCollider.bounds.size.x - ceilingCheckSideMargin * 2f, ceilingCheckThickness);
 
-        // チェックボックスの範囲内に地面レイヤー（=壁）のColliderがあればtrueを返す
+        // チェックボックスの範囲内に地面レイヤー(=壁)のColliderがあればtrueを返す
         return Physics2D.OverlapBox(boxCenter, boxSize, 0f, groundLayer) != null;
     }
 
@@ -408,7 +496,7 @@ public class PlayerController : MonoBehaviour
         squashProgress = Mathf.Clamp01(squashProgress);
     }
 
-    // 現在の進捗に応じてスケールとColliderを適用する（通常時のしゃがみ用）
+    // 現在の進捗に応じてスケールとColliderを適用する(通常時のしゃがみ用)
     private void ApplySquash()
     {
         // ーーー見た目のスケールを補間するーーー
@@ -417,7 +505,7 @@ public class PlayerController : MonoBehaviour
         transform.localScale = afterScale;
 
         // ーーーColliderのY方向を足元基準で縮めるーーー
-        // 縮み切った時のsize.yに対する倍率を補間する（伸びきりで1、縮みきりでsquashedColliderYRatio）
+        // 縮み切った時のsize.yに対する倍率を補間する(伸びきりで1、縮みきりでsquashedColliderYRatio)
         // 実際の当たり判定Y = size.y × localScale.y なので、localScale側でも縮む分だけ自動的に当たり判定も縮む
         // さらにsize.yにsquashedColliderYRatioをかけることで、見た目より少しゆとりのある当たり判定になる
         float ratioToSquashed = Mathf.Lerp(1f, squashedColliderYRatio, squashProgress);
@@ -427,14 +515,14 @@ public class PlayerController : MonoBehaviour
         float normalBottomLocalY = normalColliderOffsetY - normalColliderSizeY / 2f;
         float currentOffsetY = normalBottomLocalY + currentSizeY / 2f;
 
-        // Colliderのsizeとoffsetを適用する（sizeのXはそのまま、YとoffsetのYだけ変更）
+        // Colliderのsizeとoffsetを適用する(sizeのXはそのまま、YとoffsetのYだけ変更)
         boxCollider.size = new Vector2(boxCollider.size.x, currentSizeY);
         boxCollider.offset = new Vector2(boxCollider.offset.x, currentOffsetY);
 
         // ーーー下端を基準に縮ませるために位置を補正するーーー
         if (squashFromBottom)
         {
-            // スケール変化による見た目の高さの差分を計算する（中心基準で縮んだ分の半分だけ下端が浮く）
+            // スケール変化による見た目の高さの差分を計算する(中心基準で縮んだ分の半分だけ下端が浮く)
             float heightDifference = (beforeScale.y - afterScale.y) * normalColliderSizeY / 2f;
 
             // その分プレイヤーを下に移動させることで、下端の位置を保つ
@@ -442,10 +530,10 @@ public class PlayerController : MonoBehaviour
         }
     }
 
-    // 接地判定・天井判定・Collider範囲をSceneビューに可視化する（デバッグ用）
+    // 接地判定・天井判定・Collider範囲をSceneビューに可視化する(デバッグ用)
     private void OnDrawGizmos()
     {
-        // boxColliderがまだ取得されていない場合（エディタ停止中）はGetComponentで取る
+        // boxColliderがまだ取得されていない場合(エディタ停止中)はGetComponentで取る
         BoxCollider2D box = boxCollider != null ? boxCollider : GetComponent<BoxCollider2D>();
         if (box == null) return;
 
@@ -469,7 +557,7 @@ public class PlayerController : MonoBehaviour
         Gizmos.DrawWireCube(groundBoxCenter, groundBoxSize);
 
         // ーーー天井判定ボックスーーー
-        // 通常スケール基準の高さで天井チェック位置を計算する（停止中は現在の値で代用）
+        // 通常スケール基準の高さで天井チェック位置を計算する(停止中は現在の値で代用)
         float referenceScaleY = Application.isPlaying ? normalScale.y : transform.localScale.y;
         float referenceColliderSizeY = Application.isPlaying ? normalColliderSizeY : box.size.y;
         float bottomY = box.bounds.min.y;
